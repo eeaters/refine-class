@@ -1,0 +1,77 @@
+:toc:
+:toc-title: 降级FallBack类自动补全的Demo
+
+== 解决的问题
+Feign的服务降级中，一个有20个方法的Client，现在需要对一个方法降级处理，
+但是fallback是类级别的定义，所以需要对其他19个也进行代码的编写. +
+业务方希望我能够解决他们这个问题
+
+== 实现的方案
+=== 方案1： 抽离一个专门回退的Client
+需要回退的方法就抽出来和其他的隔离一下，但是业务方提出： +
+有些方法是发现风险后才决定加回退，那么发现问题就改代码，如果解决不了他们再考虑这种方案
+
+=== 方案2： 代理类
+有同事提出方案，通过一个代理类，所有回退都走该代理类， 代理类通过反射进行需要回退的代码调用 +
+
+因为我不认同这种方案，没有深入思考
+
+=== 方案3： 利用APT技术，业务写抽象类，编译器自动完善
+思路来源于lombok，mapstruct框架，编译期进行代码完善
+
+mapstruct利用的freemarker模板引擎，实际demo中感觉太重了，直接参考spring-initializr项目进行实现类编写
+
+== 项目结构
+. refine-core 核心jar包,目前只有一个注解
+. refine-processor 编译的处理器,核心代码都在这里
+. refine-example 样例模块,测试是否与lombok兼容(兼容的)
+
+
+== 基本流程
+. 开发时，写一个Client的抽象类，将需要降级的代码编写
+. 在抽象类上加一个注解进行标记: Demo中是@RefineComponent,保留策略为Class而不是经常写的RunTime级别了
+. 编译器进行代码完善
+- 参考mapstruct的 `MethodRetrievalProcessor` 进行扫描,获取要填充的信息
+- 参考spring-initializr项目中对pom.xml的写入方法,写一个实现类
+
+== 实现的效果
+AbstractEcho这个类在编译后生成了一个实现类; 将target中代码粘贴如下:
+[source,java]
+----
+package io.eeaters.refine.example;
+
+import io.eeaters.refine.example.entity.Result;
+import org.springframework.stereotype.Component;
+
+@Component
+public class AbstractEchoImpl extends AbstractEcho {
+    public AbstractEchoImpl() {
+    }
+
+    public String echo(String var0) {
+        return null;
+    }
+
+    public Result<String> echo(Result<String> var0, String var1) {
+        return null;
+    }
+}
+
+----
+
+
+== 碰到的问题
+=== 注意事项
+. 这里编写的代码是编译器的,api和运行期的不太一样,反射那套api是绝对不能用的 +
+mapstruct的功能强大所以代码也比较复杂,因此对于 `RefineContext#buildMethodInfo` 方法是在debug中写的,
+不知道能不能经得起线上使用
+
+. 目前是将所有的类通过全类名的方法生成的文件,编译后在target中又变成了符合我们阅读的代码,有时间(可能永远没时间)可以在
+MetaInfo中加一个importClasses的Set集合; 碰到所有非java.lang全部丢进去,然后write到流中就可以
+
+
+=== 编译期代码如何debug
+代码是在Idea中编写,Idea的debug过程如下:
+
+. Run Configuration中增加一个Remote JVM Debug; 端口号设置为8000(参考网上设置的端口号,非必须)
+. 首次需要在根目录下maven compile/install一下,或者直接根目录下Debug Maven中执行直接进入debug
