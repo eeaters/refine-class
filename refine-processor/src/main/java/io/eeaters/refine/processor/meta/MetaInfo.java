@@ -1,5 +1,7 @@
 package io.eeaters.refine.processor.meta;
 
+import io.eeaters.refine.core.enums.ExceptionStrategy;
+
 import javax.lang.model.element.TypeElement;
 import java.util.List;
 
@@ -12,6 +14,8 @@ public class MetaInfo {
     private String className;
 
     private boolean isSpringComponent;
+
+    private ExceptionStrategy exceptionStrategy;
 
     private List<MethodInfo> refineMethods;
 
@@ -45,6 +49,14 @@ public class MetaInfo {
 
     public void setSpringComponent(boolean springComponent) {
         isSpringComponent = springComponent;
+    }
+
+    public ExceptionStrategy getExceptionStrategy() {
+        return exceptionStrategy;
+    }
+
+    public void setExceptionStrategy(ExceptionStrategy exceptionStrategy) {
+        this.exceptionStrategy = exceptionStrategy;
     }
 
     public List<MethodInfo> getRefineMethods() {

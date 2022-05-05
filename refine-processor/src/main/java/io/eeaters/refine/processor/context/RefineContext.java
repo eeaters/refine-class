@@ -35,9 +35,6 @@ public class RefineContext {
 
     private Elements elementUtils;
 
-    // 将用于操作io流,将信息写入
-    private MetaWriter metaWriter;
-
     // 用于创建实现类
     private Filer filer;
 
@@ -52,7 +49,6 @@ public class RefineContext {
         this.messager = processingEnv.getMessager();
         this.filer = processingEnv.getFiler();
         this.typeUtils = processingEnv.getTypeUtils();
-        this.metaWriter = new MetaWriter();
         this.typeElement = typeElement;
     }
 
@@ -77,6 +73,7 @@ public class RefineContext {
         MetaInfo metaInfo = new MetaInfo();
         metaInfo.setOriginClass(typeElement);
         metaInfo.setSpringComponent(annotation.isComponent());
+        metaInfo.setExceptionStrategy(annotation.exceptionStrategy());
 
         String qualifiedName = typeElement.getQualifiedName().toString();
         int lastIndexOf = qualifiedName.lastIndexOf(".");
@@ -134,7 +131,8 @@ public class RefineContext {
 
     private void writeIO(MetaInfo metaInfo, JavaFileObject source) {
         try (RefineWriter refineWriter = new RefineWriter(source.openWriter())) {
-            metaWriter.writeTo(refineWriter, metaInfo);
+            MetaWriter.getInstance(metaInfo.getExceptionStrategy())
+                    .writeTo(refineWriter, metaInfo);
         } catch (IOException e) {
             processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR, "写入实现类失败, 异常为: " + e.getMessage());
         }
